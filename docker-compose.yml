@@ -12,3 +12,4 @@ services:
     volumes:
       - .:/app
     command: python src/app.py
+    ports: -"5000:5000"
