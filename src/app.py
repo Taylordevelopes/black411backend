@@ -64,10 +64,16 @@ def sms_reply():
         results = search_businesses(tag, city, state)
 
         if results:
-            reply = f"Black Businesses in {city.title()}, {state.upper()}:\n\n"
-            for name, phone, website, street, city, state, postalcode in results[:5]:
-                reply += f"📍 {name}\n📞 {phone}\n🔗 {website}\n🏠 {street}, {city}, {state} {postalcode}\n\n"
-            reply += "Reply again to search more!"
+            if results == 1:
+                reply = f"Here is a Black Business for your search of {tag.upper()} in {city.title()}, {state.upper()}:\n\n"
+                for name, phone, website, street, city, state, postalcode in results[:3]:
+                    reply += f"📍 {name}\n📞 {phone}\n🔗 {website}\n🏠 {street}, {city}, {state} {postalcode}\n\n"
+                reply += "Reply again to search more!"
+            else:
+                reply = f"Here are Black Businesses for your search or {tag.upper()} in {city.title()}, {state.upper()}:\n\n"
+                for name, phone, website, street, city, state, postalcode in results[:3]:
+                    reply += f"📍 {name}\n📞 {phone}\n🔗 {website}\n🏠 {street}, {city}, {state} {postalcode}\n\n"
+                reply += "Reply again to search more!"
         else:
             reply = f"No results found for '{tag}' in {city.title()}, {state.upper()}."
 
