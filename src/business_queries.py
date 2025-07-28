@@ -1,4 +1,5 @@
 from db import get_connection
+from datetime import datetime, timezone
 
 def get_city_lat_lon(city, state, conn):
     with conn.cursor() as cur:
@@ -21,8 +22,9 @@ def search_businesses(tag, city, state, radius=50):
         center_lat, center_lon = center
 
         # STEP 2a: Radius-based match (exclude tagname and distance from SELECT)
-        query = """
+        query ="""
             SELECT 
+                b.businessid,
                 b.name,
                 b.phonenumber,
                 b.website,
@@ -42,13 +44,15 @@ def search_businesses(tag, city, state, radius=50):
                     sin(radians(%s)) * sin(radians(a.latitude))
                 )
             ) <= %s
-            ORDER BY (
-                3959 * acos(
-                    cos(radians(%s)) * cos(radians(a.latitude)) *
-                    cos(radians(a.longitude) - radians(%s)) +
-                    sin(radians(%s)) * sin(radians(a.latitude))
-                )
-            ) ASC;
+            ORDER BY b.last_seen_at NULLS FIRST,
+                     (
+                         3959 * acos(
+                             cos(radians(%s)) * cos(radians(a.latitude)) *
+                             cos(radians(a.longitude) - radians(%s)) +
+                             sin(radians(%s)) * sin(radians(a.latitude))
+                         )
+                     ) ASC
+            LIMIT 3;
         """
         params = (
             tag.lower(),
@@ -74,15 +78,28 @@ def search_businesses(tag, city, state, radius=50):
             JOIN tags t ON bt.tagid = t.tagid
             WHERE lower(a.city) = %s
             AND upper(a.state) = %s
-            AND lower(t.tagname) = %s;
+            AND lower(t.tagname) = %s
+            ORDER BY b.last_seen_at NULLS FIRST, b.businessid
+            LIMIT 3;
         """
         params = (city.lower(), state.upper(), tag.lower())
 
     # STEP 3: Run the query
     cur.execute(query, params)
     results = cur.fetchall()
+    business_ids = [row[0] for row in results]
+    if business_ids:
+        now = datetime.now(timezone.utc)
+        cur.execute(
+            "UPDATE businesses SET last_seen_at = %s WHERE businessid = ANY(%s)",
+            (now, business_ids)
+        )
+        conn.commit()
+
+    # STEP 5: Drop businessid before returning results
+    cleaned_results = [row[1:] for row in results]
 
     cur.close()
     conn.close()
 
-    return results
+    return cleaned_results
