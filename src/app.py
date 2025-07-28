@@ -56,8 +56,8 @@ def sms_reply():
 
         if results:
             reply = f"Black Businesses in {city.title()}, {state.upper()}:\n\n"
-            for name, phone, street, city, state, category in results[:5]:  # limit to 5 results
-                reply += f"📍 {name}\n📞 {phone}\n🏠 {street}, {city}, {state}\n🗂 {category}\n\n"
+            for name, phone, website, street, city, state, postalcode in results[:5]:
+                reply += f"📍 {name}\n📞 {phone}\n🔗 {website}\n🏠 {street}, {city}, {state} {postalcode}\n\n"
             reply += "Reply again to search more!"
         else:
             reply = f"No results found for '{tag}' in {city.title()}, {state.upper()}."
