@@ -15,13 +15,11 @@ def search_businesses(tag, city, state, radius=50):
     conn = get_connection()
     cur = conn.cursor()
 
-    # STEP 1: Try to get coordinates for the city
     center = get_city_lat_lon(city, state, conn)
 
     if center:
         center_lat, center_lon = center
 
-        # STEP 2a: Radius-based match (exclude tagname and distance from SELECT)
         query ="""
             SELECT 
                 b.businessid,
@@ -56,13 +54,12 @@ def search_businesses(tag, city, state, radius=50):
         """
         params = (
             tag.lower(),
-            center_lat, center_lon, center_lat, radius,  # WHERE
-            center_lat, center_lon, center_lat           # ORDER BY
+            center_lat, center_lon, center_lat, radius,  
+            center_lat, center_lon, center_lat           
         )
     else:
         print("No city coordinates found — falling back to city/state match.")
 
-        # STEP 2b: City/state fallback (still exclude tagname)
         query = """
             SELECT 
                 b.name,
@@ -84,7 +81,6 @@ def search_businesses(tag, city, state, radius=50):
         """
         params = (city.lower(), state.upper(), tag.lower())
 
-    # STEP 3: Run the query
     cur.execute(query, params)
     results = cur.fetchall()
     business_ids = [row[0] for row in results]
@@ -96,7 +92,6 @@ def search_businesses(tag, city, state, radius=50):
         )
         conn.commit()
 
-    # STEP 5: Drop businessid before returning results
     cleaned_results = [row[1:] for row in results]
 
     cur.close()
