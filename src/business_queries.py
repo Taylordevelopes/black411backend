@@ -1,6 +1,4 @@
 from db import get_connection
-from datetime import datetime,timezone
-from psycopg2.extras import execute_values
 
 def get_city_lat_lon(city, state, conn):
     with conn.cursor() as cur:
@@ -10,7 +8,6 @@ def get_city_lat_lon(city, state, conn):
             WHERE lower(city) = %s AND upper(state) = %s
         """, (city.lower(), state.upper()))
         return cur.fetchone() 
-
 def search_businesses(tag, city, state, radius=50):
     print(f"Searching for: {tag} in {city}, {state}")
 
@@ -26,7 +23,6 @@ def search_businesses(tag, city, state, radius=50):
         # STEP 2a: Radius-based match (exclude tagname and distance from SELECT)
         query = """
             SELECT 
-                b.businessid,
                 b.name,
                 b.phonenumber,
                 b.website,
@@ -46,8 +42,13 @@ def search_businesses(tag, city, state, radius=50):
                     sin(radians(%s)) * sin(radians(a.latitude))
                 )
             ) <= %s
-            ORDER BY b.last_seen_at NULLS FIRST, b.businessid
-            LIMIT 3;
+            ORDER BY (
+                3959 * acos(
+                    cos(radians(%s)) * cos(radians(a.latitude)) *
+                    cos(radians(a.longitude) - radians(%s)) +
+                    sin(radians(%s)) * sin(radians(a.latitude))
+                )
+            ) ASC;
         """
         params = (
             tag.lower(),
@@ -60,7 +61,6 @@ def search_businesses(tag, city, state, radius=50):
         # STEP 2b: City/state fallback (still exclude tagname)
         query = """
             SELECT 
-                b.businessid,
                 b.name,
                 b.phonenumber,
                 b.website,
@@ -75,8 +75,6 @@ def search_businesses(tag, city, state, radius=50):
             WHERE lower(a.city) = %s
             AND upper(a.state) = %s
             AND lower(t.tagname) = %s;
-            ORDER BY b.last_seen_at NULLS FIRST, b.businessid
-            LIMIT 3;
         """
         params = (city.lower(), state.upper(), tag.lower())
 
@@ -84,21 +82,7 @@ def search_businesses(tag, city, state, radius=50):
     cur.execute(query, params)
     results = cur.fetchall()
 
-    # STEP 4: Update last_seen_at for those results
-    business_ids = [row[0] for row in results]
-    if business_ids:
-        now = datetime.now(timezone.utc)
-
-        cur.execute(
-            "UPDATE businesses SET last_seen_at = %s WHERE businessid IN %s",
-            (now, tuple(business_ids))
-        )
-        conn.commit()
-
-    # STEP 5: Drop businessid before returning results
-    cleaned_results = [row[1:] for row in results]
-
     cur.close()
     conn.close()
 
-    return cleaned_results
+    return results
