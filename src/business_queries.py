@@ -88,12 +88,10 @@ def search_businesses(tag, city, state, radius=50):
     business_ids = [row[0] for row in results]
     if business_ids:
         now = datetime.now(timezone.utc)
-        update_data = [(now, bid) for bid in business_ids]
 
-        execute_values(
-            cur,
-            "UPDATE businesses SET last_seen_at = %s WHERE businessid = %s",
-            update_data
+        cur.execute(
+            "UPDATE businesses SET last_seen_at = %s WHERE businessid IN %s",
+            (now, tuple(business_ids))
         )
         conn.commit()
 
