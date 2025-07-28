@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables and secrets
+.env
+*.env
+keys.py
+
+# Virtual environment
+venv/
+.envrc
+
+# VS Code settings
+.vscode/
+
+# macOS system files
+.DS_Store
+
+# Docker files
+*.log
+*.pid
+
+# Pytest / coverage / cache
+.coverage
+htmlcov/
+.tox/
+.cache/
+.pytest_cache/
+
+# SQLite or other local databases
+*.sqlite3
+*.db
+
+# Ignore system-specific or temp files
+*.swp
+*.bak
+*.tmp
+
+# Node/npm (in case you add frontend stuff later)
+node_modules/
+dist/
+build/
+
+# AWS keypair (DO NOT commit your .pem)
+*.pem
