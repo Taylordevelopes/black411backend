@@ -2,12 +2,17 @@ from business_queries import search_businesses
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
-import os
+from utils.state_abbreviations import STATE_ABBREVIATIONS
+import re
 
 
 load_dotenv()
 
 app = Flask(__name__)
+
+def normalize_state(state:str) -> str:
+    state = state.strip().lower()
+    return STATE_ABBREVIATIONS.get(state, state.upper() if len(state)==2 else "" )
 
 
 # Parse the text messages spliting before and after 'in' to Grab the Tag, City and State
@@ -15,22 +20,26 @@ def parse_search_query(text):
     try:
         parts = text.strip().split(" in ")
         if len(parts) != 2:
-            return None, "Missing 'in' keyword or tag before it (e.g., 'BBQ in Atlanta GA')."
+            return None, "Please provide the 'in' keyword or and what you are looking for. Remember you can search for anything with The Black 411 (e.g., 'Restaurant in Atlanta GA')."
 
         tag = parts[0].strip().lower()
-        location_parts = parts[1].rsplit(" ", 1)
+        raw_location = parts[1].strip().lower()
 
+        clean_location = re.sub(r'[,\s]+', ' ', raw_location).strip() 
+        location_parts = clean_location.rsplit(" ", 1)
         if len(location_parts) != 2:
-            return None, "City and state must both be included (e.g., 'BBQ in Atlanta GA')."
+            return None, "City and state must both be included. Remember you can search for anything with The Black 411 (e.g., 'Restaurant in Atlanta GA')."
 
         city = location_parts[0].strip().lower()
-        state = location_parts[1].strip().upper()
+        raw_state = location_parts[1].strip()
+
+        state = normalize_state(raw_state)
 
         if not tag:
-            return None, "Please include what you're searching for (e.g., 'BBQ in Atlanta GA')."
+            return None, "Please include what you're searching for. Remember you can search for anything with The Black 411 (e.g., 'Restaurant in Atlanta GA')."
         
         if not city or not state:
-            return None, "City and state must both be included (e.g., 'BBQ in Atlanta GA')."
+            return None, "City and state must both be included. Remember you can search for anything with The Black 411 (e.g., 'Restaurant in Atlanta GA')."
 
         return (tag, city, state), None
 
