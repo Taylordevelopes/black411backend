@@ -1,5 +1,6 @@
 from db import get_connection
 from datetime import datetime,timezone
+from psycopg2.extras import execute_values
 
 def get_city_lat_lon(city, state, conn):
     with conn.cursor() as cur:
@@ -25,7 +26,7 @@ def search_businesses(tag, city, state, radius=50):
         # STEP 2a: Radius-based match (exclude tagname and distance from SELECT)
         query = """
             SELECT 
-                b.businessid
+                b.businessid,
                 b.name,
                 b.phonenumber,
                 b.website,
@@ -59,7 +60,7 @@ def search_businesses(tag, city, state, radius=50):
         # STEP 2b: City/state fallback (still exclude tagname)
         query = """
             SELECT 
-                b.businessid
+                b.businessid,
                 b.name,
                 b.phonenumber,
                 b.website,
@@ -88,7 +89,7 @@ def search_businesses(tag, city, state, radius=50):
     if business_ids:
         cur.execute(
             "UPDATE businesses SET last_seen_at = %s WHERE businessid = ANY(%s)",
-            (datetime.now(timezone.utc), business_ids)
+            (datetime.now(timezone.utc), tuple(business_ids))  # 👈 wrap list in tuple
         )
         conn.commit()
 
